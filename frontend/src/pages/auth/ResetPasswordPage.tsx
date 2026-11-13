@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Spinner } from "@/components/ui/Spinner";
-import { supabase } from "@/lib/supabaseClient";
+import { getApiErrorMessage } from "@/lib/axios";
 import { completePasswordReset } from "@/services/auth.service";
 
 const resetPasswordSchema = z
@@ -23,13 +22,14 @@ const resetPasswordSchema = z
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 /**
- * Reached via the emailed reset link. supabase-js's detectSessionInUrl
- * already parses the recovery token from the URL and establishes a session
- * before this component mounts, so we just confirm a session exists.
+ * Reached via the emailed reset link (/reset-password?token=...).
+ * The token is checked by the server when the form is submitted.
  */
 export function ResetPasswordPage() {
   const navigate = useNavigate();
-  const [hasRecoverySession, setHasRecoverySession] = useState<boolean | null>(null);
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  const hasRecoverySession = Boolean(token);
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -39,25 +39,15 @@ export function ResetPasswordPage() {
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordValues>({ resolver: zodResolver(resetPasswordSchema) });
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setHasRecoverySession(!!data.session);
-    });
-  }, []);
-
   async function onSubmit(values: ResetPasswordValues) {
     setServerError(null);
     try {
-      await completePasswordReset(values.password);
+      await completePasswordReset(token!, values.password);
       setSuccess(true);
       setTimeout(() => navigate("/login", { replace: true }), 1500);
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Unable to reset password");
+      setServerError(getApiErrorMessage(err, "Unable to reset password"));
     }
-  }
-
-  if (hasRecoverySession === null) {
-    return <Spinner label="Verifying reset link..." />;
   }
 
   return (

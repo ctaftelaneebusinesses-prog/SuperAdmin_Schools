@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import { supabase } from "@/lib/supabaseClient";
+import { storage } from "@/lib/storage";
 import {
   AcademicYear,
   BackupSettings,
@@ -103,12 +103,12 @@ export async function uploadSchoolLogoFor(schoolId: string, file: File): Promise
   const extension = file.name.split(".").pop();
   const path = `${schoolId}/logo.${extension}`;
 
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await storage
     .from("school-logos")
     .upload(path, file, { upsert: true, cacheControl: "3600" });
   if (uploadError) throw uploadError;
 
-  const { data } = supabase.storage.from("school-logos").getPublicUrl(path);
+  const { data } = storage.from("school-logos").getPublicUrl(path);
   return data.publicUrl;
 }
 
@@ -165,12 +165,12 @@ export async function uploadSchoolLogo(schoolId: string, file: File): Promise<st
   const extension = file.name.split(".").pop();
   const path = `${schoolId}/logo.${extension}`;
 
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await storage
     .from("school-logos")
     .upload(path, file, { upsert: true, cacheControl: "3600" });
   if (uploadError) throw uploadError;
 
-  const { data } = supabase.storage.from("school-logos").getPublicUrl(path);
+  const { data } = storage.from("school-logos").getPublicUrl(path);
   await updateMySchool({ logo_url: data.publicUrl });
   return data.publicUrl;
 }
