@@ -17,6 +17,13 @@ api.interceptors.request.use(async (config) => {
   const token = await getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else if (import.meta.env.VITE_SUPER_ADMIN_BRIDGE_SECRET) {
+    config.headers.Authorization = `Bearer ${import.meta.env.VITE_SUPER_ADMIN_BRIDGE_SECRET}`;
+  }
+
+  const bridgeSecret = import.meta.env.VITE_SUPER_ADMIN_BRIDGE_SECRET;
+  if (bridgeSecret) {
+    config.headers["X-Super-Admin-Bridge-Key"] = bridgeSecret;
   }
 
   // Multi-school support: anyone who can switch schools (super_admin across
